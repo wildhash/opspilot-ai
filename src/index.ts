@@ -91,7 +91,8 @@ export async function runIncident(
       updateConfig.Timeout = plan.changes.lambda.timeoutSec;
     }
     if (plan.changes.lambda.reservedConcurrency !== undefined) {
-      // Note: This would require a separate API call
+      // TODO: Implement putFunctionConcurrency method in LambdaService
+      // This requires a separate PutFunctionConcurrencyCommand API call
       // await lambda.putFunctionConcurrency(functionName, plan.changes.lambda.reservedConcurrency);
     }
     

@@ -87,7 +87,7 @@ export function MetricsChart({ before, after }: MetricsChartProps) {
             <div 
               key={i}
               className="flex-1 bg-emerald-500/50 rounded-t"
-              style={{ height: `${(val / Math.max(...errorsBefore?.values || [1])) * 100}%` }}
+              style={{ height: `${(val / Math.max(...(errorsBefore?.values || []), 1)) * 100}%` }}
             />
           ))}
         </div>
