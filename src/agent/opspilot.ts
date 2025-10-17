@@ -17,6 +17,7 @@ import { BedrockService } from '../aws/bedrock';
 import { CloudWatchService } from '../aws/cloudwatch';
 import { LambdaService } from '../aws/lambda';
 import { DynamoDBService } from '../aws/dynamodb';
+import { config } from '../config';
 import { v4 as uuidv4 } from 'uuid';
 
 export class OpsPilotAgent {
@@ -368,6 +369,12 @@ export class OpsPilotAgent {
 
     const results: ExecutionResult[] = [];
 
+    // Check if in dry-run mode
+    if (config.demo.dryRun) {
+      console.log('🏃 [DRY-RUN] Would execute remediation plan:', plan);
+      return this.mockSuccessfulExecution(plan);
+    }
+
     // Check if approval required
     if (plan.approvalRequired) {
       console.log('[OpsPilot] Approval required - skipping auto-execution');
@@ -394,6 +401,22 @@ export class OpsPilotAgent {
     }
 
     return results;
+  }
+
+  /**
+   * Mock successful execution for dry-run mode
+   */
+  private mockSuccessfulExecution(plan: RemediationPlan): ExecutionResult[] {
+    return plan.actions.map(action => ({
+      actionId: action.id,
+      success: true,
+      executedAt: new Date(),
+      output: {
+        message: '[DRY-RUN] Simulated successful execution',
+        action: action.type,
+        parameters: action.parameters
+      }
+    }));
   }
 
   /**
