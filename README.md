@@ -25,6 +25,78 @@ OpsPilot AI is an agentic AI system built for the AWS Agentic AI Hackathon that 
 - **🎨 Modern Dashboard**: Next.js frontend for monitoring and control
 - **☁️ Cloud Native**: Built entirely on AWS services (Bedrock, Lambda, CloudWatch, DynamoDB)
 
+## 🎬 Quick Demo (5 minutes)
+
+### Prerequisites
+- AWS account with Bedrock, Lambda, CloudWatch, and DynamoDB access
+- AWS CLI configured
+- Node.js 18+
+
+### Setup Demo Environment
+
+```bash
+# 1. Clone and install
+git clone https://github.com/wildhash/opspilot-ai.git
+cd opspilot-ai
+npm install && cd frontend && npm install && cd ..
+
+# 2. Configure environment
+cp .env.example .env
+# Edit .env with your AWS credentials and region
+
+# 3. Run demo seed script
+chmod +x scripts/seed-demo.sh
+./scripts/seed-demo.sh
+
+# 4. Start the application
+# Terminal 1:
+npm run dev:backend
+
+# Terminal 2:
+npm run dev:frontend
+```
+
+### Run the Demo
+
+1. **Open dashboard:** http://localhost:3000
+2. **Create incident:** Paste this text:
+   ```
+   Lambda orders-handler in us-east-1 is experiencing high timeout rate and errors
+   ```
+3. **Watch OpsPilot:**
+   - Investigate metrics and logs autonomously
+   - Diagnose root cause using Bedrock AI
+   - Generate safe remediation plan
+   - Execute fix with verification
+   - Show before/after metrics
+
+4. **View audit trail:** Check DynamoDB table for complete action log
+
+### Demo Features Showcase
+
+- ✅ **Agentic Workflow:** Multi-step autonomous investigation
+- ✅ **AI Diagnosis:** Bedrock analyzes symptoms and identifies root cause
+- ✅ **Smart Remediation:** Context-aware fix generation
+- ✅ **Safety Guardrails:** Validation before execution
+- ✅ **Automated Verification:** Confirms fix success
+- ✅ **Complete Audit Trail:** Full logging in DynamoDB
+
+### Troubleshooting
+
+**Backend won't start:**
+```bash
+# Check health endpoint
+curl http://localhost:3001/health
+```
+
+**Bedrock access denied:**
+- Enable Bedrock model access in AWS Console
+- Or set `DRY_RUN=true` in .env for offline demo
+
+**No errors in CloudWatch:**
+- Wait 2-3 minutes for metrics to populate
+- Re-run: `./scripts/seed-demo.sh`
+
 ## 🏗️ Architecture
 
 ```
