@@ -149,3 +149,47 @@ export interface ToolDefinition {
     };
   };
 }
+
+/**
+ * New types for SSE streaming and plan preview
+ */
+export interface ActionPlan {
+  intent: 'reduce_timeouts' | 'reduce_5xx' | 'reduce_latency' | 'stabilize_concurrency';
+  changes: {
+    lambda?: {
+      memoryMb?: number;
+      timeoutSec?: number;
+      reservedConcurrency?: number | null;
+    };
+    alarms?: Array<{
+      metric: string;
+      threshold: number;
+      periodSec: number;
+    }>;
+  };
+  verify: {
+    invokeTest: boolean;
+    successCriteria: string;
+  };
+  rollbackCriteria: string;
+  notes: string;
+}
+
+export interface MetricSeries {
+  metric: string;
+  values: number[];
+  timestamps: Date[];
+}
+
+export interface IncidentContext {
+  incidentText: string;
+  functionConfig: Record<string, any>;
+  metrics: MetricSeries[];
+  recentErrors: Array<{ message: string; timestamp: Date }>;
+  constraints: {
+    maxMemoryMB: number;
+    maxTimeoutSec: number;
+    regionAllowlist: string[];
+    requireVerify: boolean;
+  };
+}

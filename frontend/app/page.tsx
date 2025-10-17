@@ -1,4 +1,5 @@
 import IncidentDashboard from '@/components/IncidentDashboard'
+import IncidentResponseDemo from '@/components/IncidentResponseDemo'
 
 export default function Home() {
   return (
@@ -39,6 +40,8 @@ export default function Home() {
           </p>
         </div>
       </div>
+
+      <IncidentResponseDemo />
 
       <IncidentDashboard />
 

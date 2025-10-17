@@ -10,15 +10,18 @@ import {
   ContentBlock,
   Message as BedrockMessage
 } from '@aws-sdk/client-bedrock-runtime';
-import { BedrockRequest, Message, ToolUse, ToolResult, ToolConfiguration } from '../types';
+import { BedrockRequest, Message, ToolUse, ToolResult, ToolConfiguration, IncidentContext, ActionPlan } from '../types';
+import { DynamoDBService } from './dynamodb';
 
 export class BedrockService {
   private client: BedrockRuntimeClient;
   private defaultModelId: string;
+  private dynamodb: DynamoDBService;
 
   constructor(region: string = 'us-east-1', modelId: string = 'anthropic.claude-3-sonnet-20240229-v1:0') {
     this.client = new BedrockRuntimeClient({ region });
     this.defaultModelId = modelId;
+    this.dynamodb = new DynamoDBService(region);
   }
 
   /**
@@ -297,5 +300,117 @@ Focus on safe, incremental changes that can be automatically executed.`;
       .filter(block => block.text)
       .map(block => block.text)
       .join('\n');
+  }
+
+  /**
+   * Build prompt for incident remediation planning
+   */
+  private buildPrompt(ctx: IncidentContext): string {
+    return `You are OpsPilot, an expert AWS incident response planner.
+
+CRITICAL INSTRUCTIONS:
+- Analyze the provided metrics and configuration to identify the root cause
+- Generate a MINIMAL, SAFE remediation plan
+- Return ONLY valid JSON matching the ActionPlan schema below
+- Do not include any explanatory text, only the JSON object
+
+INCIDENT DESCRIPTION:
+${ctx.incidentText}
+
+CURRENT FUNCTION CONFIGURATION:
+${JSON.stringify(ctx.functionConfig, null, 2)}
+
+RECENT PERFORMANCE METRICS (15min window):
+${JSON.stringify(ctx.metrics, null, 2)}
+
+RECENT ERROR SAMPLES:
+${JSON.stringify(ctx.recentErrors.slice(0, 5), null, 2)}
+
+SAFETY CONSTRAINTS:
+- Maximum memory: ${ctx.constraints.maxMemoryMB} MB
+- Maximum timeout: ${ctx.constraints.maxTimeoutSec} seconds
+- Allowed regions: ${ctx.constraints.regionAllowlist.join(', ')}
+- Verification required: ${ctx.constraints.requireVerify}
+
+ACTIONPLAN SCHEMA:
+{
+  "intent": "reduce_timeouts" | "reduce_5xx" | "reduce_latency" | "stabilize_concurrency",
+  "changes": {
+    "lambda": {
+      "memoryMb"?: number (128-${ctx.constraints.maxMemoryMB}),
+      "timeoutSec"?: number (3-${ctx.constraints.maxTimeoutSec}),
+      "reservedConcurrency"?: number | null
+    },
+    "alarms"?: [
+      {
+        "metric": "Errors" | "Duration",
+        "threshold": number,
+        "periodSec": number
+      }
+    ]
+  },
+  "verify": {
+    "invokeTest": boolean,
+    "successCriteria": string
+  },
+  "rollbackCriteria": string,
+  "notes": string
+}
+
+ANALYSIS GUIDELINES:
+- If Duration is high and memory is low → increase memory
+- If timeouts are occurring → increase timeout duration
+- If errors are persistent → investigate concurrency limits
+- Always add appropriate CloudWatch alarms for monitoring
+- Keep changes minimal and reversible
+
+Return ONLY the JSON ActionPlan object, no other text.`;
+  }
+
+  /**
+   * Plan remediation for an incident
+   */
+  async planRemediation(ctx: IncidentContext, useCache: boolean = true): Promise<{ plan: ActionPlan; cached: boolean }> {
+    // Try cache first for demo reliability
+    if (useCache) {
+      const cached = await this.dynamodb.getCachedPlan();
+      if (cached) {
+        console.log('Using cached plan for reliability');
+        return { plan: cached, cached: true };
+      }
+    }
+
+    // Build prompt
+    const prompt = this.buildPrompt(ctx);
+
+    // Call Bedrock
+    const request: BedrockRequest = {
+      modelId: this.defaultModelId,
+      messages: [
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.2,
+      maxTokens: 2048
+    };
+
+    const response = await this.converse(request);
+    const responseText = this.extractTextFromResponse(response);
+
+    // Parse JSON response
+    let plan: ActionPlan;
+    try {
+      // Extract JSON from response (handle cases where model adds markdown code blocks)
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('No JSON found in response');
+      }
+      plan = JSON.parse(jsonMatch[0]);
+    } catch (error) {
+      throw new Error(`Failed to parse Bedrock response as JSON: ${error}`);
+    }
+
+    // Cache successful plan
+    await this.dynamodb.cachePlan(plan);
+    return { plan, cached: false };
   }
 }
