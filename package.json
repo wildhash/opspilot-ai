@@ -12,7 +12,8 @@
     "dev:frontend": "cd frontend && npm run dev",
     "test": "jest",
     "lint": "eslint . --ext .ts,.tsx",
-    "deploy": "npm run build && cdk deploy"
+    "deploy": "npm run build && cdk deploy",
+    "cli": "ts-node src/cli.ts"
   },
   "keywords": [
     "aws",

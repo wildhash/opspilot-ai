@@ -11,8 +11,7 @@ import {
   VerificationResult,
   SafetyCheck,
   Tool,
-  ToolConfiguration,
-  AgentContext
+  ToolConfiguration
 } from '../types';
 import { BedrockService } from '../aws/bedrock';
 import { CloudWatchService } from '../aws/cloudwatch';
@@ -327,7 +326,7 @@ export class OpsPilotAgent {
    */
   private performSafetyChecks(
     actions: RemediationAction[],
-    incident: Incident
+    _incident: Incident
   ): SafetyCheck[] {
     const checks: SafetyCheck[] = [];
 
@@ -407,7 +406,7 @@ export class OpsPilotAgent {
       let output;
 
       switch (action.type) {
-        case 'update_config':
+        case 'update_config': {
           output = await this.lambda.updateFunctionConfig(
             action.parameters.functionName,
             {
@@ -416,8 +415,9 @@ export class OpsPilotAgent {
             }
           );
           break;
+        }
 
-        case 'restart_service':
+        case 'restart_service': {
           // Update environment variable to trigger restart
           const config = await this.lambda.getFunctionConfig(action.parameters.functionName);
           const env = config.Environment?.Variables || {};
@@ -427,6 +427,7 @@ export class OpsPilotAgent {
             { environment: env }
           );
           break;
+        }
 
         default:
           output = { message: 'Action type not implemented for auto-execution' };
