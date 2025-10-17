@@ -15,7 +15,7 @@ import {
   UpdateCommand,
   ScanCommand
 } from '@aws-sdk/lib-dynamodb';
-import { AuditEntry, Incident, RemediationPlan } from '../types';
+import { AuditEntry, Incident, RemediationPlan, ActionPlan } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 export class DynamoDBService {
@@ -253,5 +253,42 @@ export class DynamoDBService {
       details,
       result
     });
+  }
+
+  /**
+   * Get cached plan for demo reliability
+   */
+  async getCachedPlan(): Promise<ActionPlan | null> {
+    try {
+      const response = await this.client.send(new GetCommand({
+        TableName: this.tableName,
+        Key: {
+          id: 'demo_plan_latest',
+          timestamp: 'cache'
+        }
+      }));
+      
+      if (response.Item?.payload) {
+        const cached = JSON.parse(response.Item.payload as string);
+        return cached.plan;
+      }
+    } catch (e) {
+      console.warn('No cached plan found');
+    }
+    return null;
+  }
+
+  /**
+   * Cache plan for demo reliability
+   */
+  async cachePlan(plan: ActionPlan): Promise<void> {
+    await this.client.send(new PutCommand({
+      TableName: this.tableName,
+      Item: {
+        id: 'demo_plan_latest',
+        timestamp: 'cache',
+        payload: JSON.stringify({ plan, cachedAt: new Date().toISOString() })
+      }
+    }));
   }
 }

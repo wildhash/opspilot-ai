@@ -29,6 +29,20 @@ export class LambdaService {
   }
 
   /**
+   * Alias for getFunctionConfig
+   */
+  async getFunctionConfiguration(functionName: string): Promise<any> {
+    return this.getFunctionConfig(functionName);
+  }
+
+  /**
+   * Alias for updateFunctionConfig
+   */
+  async updateFunctionConfiguration(functionName: string, updates: any): Promise<any> {
+    return this.updateFunctionConfig(functionName, updates);
+  }
+
+  /**
    * Update function configuration
    */
   async updateFunctionConfig(
